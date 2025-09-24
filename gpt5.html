@@ -1,0 +1,921 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#56c585" />
+  <title>Leafee — Image Nutrition Analyzer</title>
+  <meta name="description" content="Leafee: Snap a meal photo to get instant macronutrient analysis. Simple, cute, and fast." />
+
+  <!-- Open Graph / Twitter -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Leafee — Image Nutrition Analyzer">
+  <meta property="og:description" content="Upload a meal photo and get instant macronutrient analytics. Simple, cute, and fast.">
+  <meta property="og:image" content="/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Font (fast + clean) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --leaf: #56c585;
+      --leaf-2: #39b58a;
+      --bg: #f6fbf7;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --ring: rgba(86,197,133,.25);
+      --warn: #f59e0b;
+      --error: #ef4444;
+
+      --shadow: 0 10px 30px rgba(0,0,0,.08), 0 3px 10px rgba(0,0,0,.04);
+      --radius: 16px;
+
+      --maxw: 1080px;
+    }
+    @media (prefers-color-scheme: dark){
+      :root{
+        --bg: #0f1511;
+        --card: #121a14;
+        --text: #e5e7eb;
+        --muted: #94a3b8;
+        --ring: rgba(86,197,133,.3);
+        --shadow: 0 10px 30px rgba(0,0,0,.35), 0 3px 10px rgba(0,0,0,.25);
+      }
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family: Manrope, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 800px at 10% -10%, rgba(86,197,133,.2), transparent 50%),
+        radial-gradient(1200px 800px at 110% 10%, rgba(57,181,138,.15), transparent 50%),
+        var(--bg);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+    a{color:inherit; text-decoration:none}
+    .container{max-width:var(--maxw); margin:0 auto; padding:0 clamp(16px, 4vw, 28px)}
+
+    /* Header / Nav */
+    .topbar{
+      position:sticky; top:0; z-index:40; backdrop-filter: saturate(140%) blur(10px);
+      background: color-mix(in hsl, var(--bg) 85%, transparent);
+      border-bottom: 1px solid rgba(0,0,0,.06);
+    }
+    header{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 0;
+    }
+    .brand{display:flex; gap:10px; align-items:center; font-weight:800; letter-spacing:.2px;}
+    .brand-logo{
+      width:36px; height:36px; border-radius:10px;
+      background: conic-gradient(from 180deg at 50% 50%, var(--leaf), var(--leaf-2));
+      display:grid; place-items:center; color:white; font-size:20px; box-shadow: var(--shadow);
+    }
+    .nav{
+      display:flex; align-items:center; gap:14px;
+    }
+    .nav a{color:var(--muted); font-weight:700; font-size:14px; padding:8px 10px; border-radius:10px}
+    .nav a:hover{color:var(--text); background:rgba(86,197,133,.08)}
+    .tag{
+      font-size:12px; color:var(--muted); background:rgba(86,197,133,.08);
+      padding:6px 10px; border-radius:999px; border:1px solid rgba(86,197,133,.2)
+    }
+    .menu-btn{display:none}
+    @media (max-width:880px){
+      .nav{display:none}
+      .menu-btn{display:inline-flex; gap:8px; align-items:center; padding:8px 10px; border-radius:10px; border:1px solid rgba(0,0,0,.08); background:var(--card)}
+      .mobile-menu{display:none; padding:10px 0; border-top:1px solid rgba(0,0,0,.06)}
+      .mobile-menu a{display:block; padding:10px; border-radius:10px; color:var(--muted); font-weight:700}
+      .mobile-menu a:hover{background:rgba(86,197,133,.08); color:var(--text)}
+      .mobile-menu.open{display:block}
+    }
+
+    /* Hero */
+    .hero{
+      padding: clamp(24px, 6vw, 48px) 0 clamp(24px, 6vw, 54px);
+      text-align:center; position:relative; overflow:hidden;
+    }
+    h1{
+      margin:.2rem 0 .5rem; font-size: clamp(28px, 6vw, 56px); line-height:1.05;
+      letter-spacing:-.02em;
+    }
+    .sub{ color:var(--muted); font-size: clamp(14px, 2.8vw, 18px); max-width:780px; margin: 0 auto 14px }
+    .badge-row{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:6px 0 16px}
+    .badge{font-size:12px; color:#065f46; background:rgba(86,197,133,.15); padding:6px 10px; border-radius:999px; border:1px solid rgba(86,197,133,.25)}
+    .cta-row{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:12px}
+    .btn{
+      appearance:none; border:none; outline:none; cursor:pointer;
+      background: var(--leaf); color:white; font-weight:800; letter-spacing:.2px;
+      padding:12px 18px; border-radius:12px; min-width:160px; box-shadow: var(--shadow);
+      transition: transform .06s ease, box-shadow .2s ease, opacity .2s ease;
+    }
+    .btn:hover{transform: translateY(-1px)}
+    .btn:active{transform: translateY(0)}
+    .btn.secondary{
+      background: transparent; color: var(--leaf);
+      border:1.5px solid rgba(86,197,133,.45);
+    }
+    .btn.ghost{
+      background: transparent; color: var(--muted);
+      border:1px dashed rgba(148,163,184,.6); min-width:auto;
+    }
+    .press{ display:flex; align-items:center; justify-content:center; gap:18px; flex-wrap:wrap; opacity:.9; margin-top:20px }
+    .press .logo{
+      padding:6px 10px; border-radius:10px; border:1px solid rgba(0,0,0,.06); background:var(--card);
+      color:var(--muted); font-weight:700; font-size:12px;
+    }
+
+    /* Cards / Sections */
+    .section{ padding: clamp(18px, 5vw, 48px) 0 }
+    .card{
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border:1px solid rgba(0,0,0,.06);
+    }
+    .section-title{
+      text-align:center; font-size: clamp(22px, 4.6vw, 34px); margin:0 0 10px
+    }
+    .section-sub{ text-align:center; color:var(--muted); max-width:780px; margin:0 auto 14px }
+
+    /* How it works */
+    .steps{ display:grid; grid-template-columns: 1fr; gap:14px; margin-top:14px }
+    @media(min-width:860px){ .steps{ grid-template-columns: repeat(3, 1fr) } }
+    .step{ padding:14px; border-radius:14px; border:1px solid rgba(0,0,0,.06); background:linear-gradient(180deg, rgba(86,197,133,.05), transparent 50%), var(--card) }
+    .step .num{ width:28px; height:28px; border-radius:8px; display:grid; place-items:center; background:rgba(86,197,133,.15); color:#065f46; font-weight:800; margin-bottom:8px }
+    .step h4{ margin:0 0 6px }
+    .step p{ margin:0; color:var(--muted) }
+
+    /* Features */
+    .features{ display:grid; grid-template-columns: 1fr; gap:12px; margin-top:14px }
+    @media(min-width:860px){ .features{ grid-template-columns: repeat(3, 1fr) } }
+    .feature{ padding:16px; border-radius:14px; border:1px solid rgba(0,0,0,.06); background:var(--card) }
+    .feature .icon{ font-size:20px; margin-bottom:6px }
+    .feature h4{ margin:0 0 6px }
+    .feature p{ margin:0; color:var(--muted) }
+
+    /* Uploader (Analyzer) */
+    .uploader{ margin:18px auto; padding:16px }
+    .drop{
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:12px; min-height:200px; text-align:center; border:2px dashed rgba(86,197,133,.4);
+      border-radius: 14px; padding:18px; background: rgba(86,197,133,.06);
+      transition: .2s ease; outline: none;
+    }
+    .drop.dragover{ background: rgba(86,197,133,.12); border-color: var(--leaf); box-shadow: 0 0 0 6px var(--ring) inset; transform: translateY(-1px) }
+    .preview{ width:100%; display:none; margin-top:12px; border-radius:12px; overflow:hidden; background: #00000010; max-height:360px }
+    .preview img{ width:100%; display:block; object-fit:cover }
+    .controls{ margin-top:14px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:center }
+    .hint{ color:var(--muted); font-size:12px }
+    .error{ color: var(--error); font-weight:600; }
+
+    /* Results */
+    .results{ margin-top:18px; padding:16px; display:none }
+    .result-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap }
+    .sum{ display:flex; gap:14px; align-items:center; flex-wrap:wrap }
+    .chip{ padding:8px 12px; border-radius:999px; background: rgba(86,197,133,.08); border:1px solid rgba(86,197,133,.25); font-weight:700 }
+    .ring-wrap{ display:flex; align-items:center; gap:16px; margin-top:10px; flex-wrap:wrap }
+    .donut{ --size: 140px; width:var(--size); height:var(--size); border-radius:50%; background: conic-gradient(#ddd 0 100%); position: relative; box-shadow: inset 0 0 0 10px rgba(0,0,0,.04) }
+    .donut::after{ content:""; position:absolute; inset:14px; background: var(--card); border-radius:50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,.05) }
+    .legend{ display:grid; grid-template-columns: 1fr 1fr; gap:8px 16px; font-size:14px }
+    .legend .item{ display:flex; align-items:center; gap:8px }
+    .swatch{ width:12px; height:12px; border-radius:3px }
+    .prot{ background:#5db0ff}
+    .carb{ background:#fdaf5e}
+    .fat{ background:#ff6a89}
+    .cal{ background:#7bd389}
+    .divider{ height:1px; background: linear-gradient(90deg, transparent, rgba(0,0,0,.08), transparent); margin:14px 0 }
+    .gated{ text-align:center; padding:18px; border:1px dashed rgba(148,163,184,.5); border-radius:12px; background: rgba(0,0,0,.03) }
+    .foods{ display:grid; grid-template-columns: 1fr; gap:10px }
+    @media(min-width:720px){ .foods{ grid-template-columns: 1fr 1fr } }
+    .food{ padding:12px; border-radius:12px; border:1px solid rgba(0,0,0,.06); background: linear-gradient(180deg, rgba(86,197,133,.05), transparent 50%), var(--card) }
+    .food h4{ margin:0 0 4px 0 }
+    .food .meta{ color:var(--muted); font-size:13px }
+    .food .macros{ display:flex; gap:10px; margin-top:6px; font-size:14px; color:#0f172a }
+
+    .loader{ display:flex; align-items:center; justify-content:center; gap:10px; color:var(--muted); margin-top:8px }
+    .spinner{ width:18px; height:18px; border:3px solid rgba(86,197,133,.25); border-top-color: var(--leaf); border-radius:50%; animation: spin .8s linear infinite }
+    @keyframes spin { to { transform: rotate(360deg) } }
+
+    /* Testimonials */
+    .reviews{ display:grid; grid-template-columns: 1fr; gap:12px; margin-top:14px }
+    @media(min-width:860px){ .reviews{ grid-template-columns: repeat(3, 1fr) } }
+    .review{ padding:14px; border-radius:14px; border:1px solid rgba(0,0,0,.06); background:var(--card) }
+    .stars{ color:#f59e0b; letter-spacing:1px; margin-bottom:6px }
+    .who{ display:flex; align-items:center; gap:8px; margin-top:10px; color:var(--muted); font-size:14px }
+
+    /* FAQ */
+    .faq-list{ max-width:900px; margin:14px auto 0 }
+    details{ background:var(--card); border-radius:12px; border:1px solid rgba(0,0,0,.06); padding:12px; margin-bottom:10px }
+    summary{ cursor:pointer; font-weight:800; outline:none }
+    details[open]{ box-shadow: var(--shadow) }
+
+    /* Bottom CTA */
+    .bottom-cta { text-align:center; padding:24px; border:1px solid rgba(0,0,0,.06); border-radius:16px; background: linear-gradient(180deg, rgba(86,197,133,.08), transparent 60%), var(--card); margin-top:10px }
+
+    /* Footer */
+    footer{ padding:20px 0; color:var(--muted) }
+    .foot-grid{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; font-size:14px }
+    .foot-links{ display:flex; gap:10px }
+    .foot-links a{ color:var(--muted) }
+    .foot-links a:hover{ color:var(--text) }
+
+    /* Sticky mobile CTA */
+    .sticky-cta{
+      position:fixed; left:0; right:0; bottom:10px; display:none; justify-content:center; z-index:45;
+    }
+    .sticky-cta .inner{
+      display:flex; gap:12px; align-items:center; background: var(--card); border:1px solid rgba(0,0,0,.08);
+      border-radius:999px; box-shadow: var(--shadow); padding:8px 10px
+    }
+    .sticky-cta .leaf{ width:28px; height:28px; border-radius:8px; display:grid; place-items:center; background: conic-gradient(from 180deg at 50% 50%, var(--leaf), var(--leaf-2)); color:#fff }
+    @media(min-width:860px){ .sticky-cta{ display:none !important } }
+
+    /* Ad overlay (simulated) */
+    .ad-backdrop{
+      position:fixed; inset:0; background: rgba(0,0,0,.35); display:none;
+      align-items:center; justify-content:center; padding:16px; z-index:50;
+    }
+    .ad{
+      width:min(520px, 100%); background: var(--card); border-radius:16px; padding:16px; box-shadow: var(--shadow);
+      border:1px solid rgba(0,0,0,.08); text-align:center;
+    }
+    .ad-banner{
+      border-radius:12px; overflow:hidden; height:160px; display:grid; place-items:center;
+      color:#083; font-weight:800; font-size:20px;
+      background: repeating-linear-gradient(45deg, rgba(86,197,133,.15) 0 14px, rgba(57,181,138,.15) 14px 28px);
+      border:1px solid rgba(86,197,133,.25);
+    }
+    .timer{ margin-top:12px; font-weight:700 }
+    .ad-actions{ display:flex; gap:12px; justify-content:center; margin-top:12px }
+
+    /* Motion reduce */
+    @media (prefers-reduced-motion: reduce){
+      html{scroll-behavior:auto}
+      .btn{transition:none}
+      .spinner{animation:none}
+    }
+  </style>
+</head>
+<body>
+  <a href="#try" class="hint" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden">Skip to analyzer</a>
+
+  <div class="topbar">
+    <div class="container">
+      <header>
+        <div class="brand">
+          <div class="brand-logo">🌿</div>
+          <div>
+            <div style="font-weight:800">Leafee</div>
+            <div class="hint">Snap → Analyze → Eat smarter</div>
+          </div>
+        </div>
+        <nav class="nav">
+          <a href="#how">How it works</a>
+          <a href="#features">Features</a>
+          <a href="#reviews">Reviews</a>
+          <a href="#faq">FAQ</a>
+          <span class="tag">Beta</span>
+          <a href="#try" class="btn" style="min-width:auto;padding:10px 14px">Try it now</a>
+        </nav>
+        <button id="menuToggle" class="menu-btn">
+          <span>Menu</span> ☰
+        </button>
+      </header>
+      <div id="mobileMenu" class="mobile-menu">
+        <a href="#how">How it works</a>
+        <a href="#features">Features</a>
+        <a href="#reviews">Reviews</a>
+        <a href="#faq">FAQ</a>
+        <a href="#try" class="btn" style="display:block; margin-top:8px">Try it now</a>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <!-- Hero -->
+    <section class="hero">
+      <div class="container">
+        <div class="badge-row">
+          <span class="badge">No sign-up</span>
+          <span class="badge">Privacy-first</span>
+          <span class="badge">Mobile-ready</span>
+        </div>
+        <h1>Turn meal photos into instant macro insights</h1>
+        <p class="sub">Upload or snap your plate and get a fast, friendly breakdown of calories, protein, carbs, and fat. Keep it simple. Keep it Leafee. 🍃</p>
+        <div class="cta-row">
+          <a href="#try" class="btn">Analyze a meal</a>
+          <a href="#how" class="btn secondary">See how it works</a>
+        </div>
+
+        <div class="press">
+          <span class="hint">Loved by nutrition nerds at</span>
+          <span class="logo">MacroHackers</span>
+          <span class="logo">Wellness Hub</span>
+          <span class="logo">FoodAI</span>
+          <span class="logo">DevEats</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section id="how" class="section">
+      <div class="container">
+        <h2 class="section-title">How it works</h2>
+        <p class="section-sub">Three quick steps to smarter eating.</p>
+        <div class="steps">
+          <div class="step">
+            <div class="num">1</div>
+            <h4>Snap or Upload</h4>
+            <p>Use your camera or drop a JPG/PNG. We optimize the image for fast analysis.</p>
+          </div>
+          <div class="step">
+            <div class="num">2</div>
+            <h4>Analyze</h4>
+            <p>We send the image to our analyzer webhook and return total macros in seconds.</p>
+          </div>
+          <div class="step">
+            <div class="num">3</div>
+            <h4>Unlock Details</h4>
+            <p>Totals are free. Watch a short ad to see the itemized food breakdown.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="section">
+      <div class="container">
+        <h2 class="section-title">Designed for real life</h2>
+        <p class="section-sub">Fast, cute, and production‑ready—without the clutter.</p>
+        <div class="features">
+          <div class="feature">
+            <div class="icon">⚡</div>
+            <h4>Instant results</h4>
+            <p>Smart client compression + lean requests keep things snappy on mobile networks.</p>
+          </div>
+          <div class="feature">
+            <div class="icon">🔒</div>
+            <h4>Private by default</h4>
+            <p>No sign-up required. Only your photo goes to the analyzer for processing.</p>
+          </div>
+          <div class="feature">
+            <div class="icon">📱</div>
+            <h4>Camera‑first</h4>
+            <p>Capture directly from your phone with clean, accessible controls.</p>
+          </div>
+          <div class="feature">
+            <div class="icon">🍽️</div>
+            <h4>Detailed breakdown</h4>
+            <p>Watch a short ad to unlock per‑item nutrition with clear labeling.</p>
+          </div>
+          <div class="feature">
+            <div class="icon">🎨</div>
+            <h4>Lovely aesthetic</h4>
+            <p>Soft gradients, friendly chips, and a breezy brand feel—Leafee style.</p>
+          </div>
+          <div class="feature">
+            <div class="icon">🧩</div>
+            <h4>Drop‑in simple</h4>
+            <p>Framework‑free. Single file. Easy to host anywhere.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Analyzer -->
+    <section id="try" class="section">
+      <div class="container">
+        <h2 class="section-title">Try Leafee now</h2>
+        <p class="section-sub">Upload a meal photo to get instant macros. Replace the webhook URL in code if needed.</p>
+
+        <section class="card uploader">
+          <form id="analyzeForm">
+            <div id="drop" class="drop" tabindex="0" aria-label="Upload meal photo">
+              <div style="font-size:24px">📸</div>
+              <div><strong>Drop a photo</strong> or tap to select</div>
+              <label class="hint" for="file">PNG/JPG, camera supported</label>
+              <input id="file" type="file" accept="image/*" capture="environment" hidden />
+            </div>
+
+            <div id="preview" class="preview" aria-live="polite" aria-atomic="true">
+              <img id="previewImg" alt="Meal photo preview" />
+            </div>
+
+            <div class="controls">
+              <button id="submitBtn" class="btn" type="submit" disabled>Analyze meal</button>
+              <button id="resetBtn" class="btn secondary" type="button" style="display:none">Choose another</button>
+              <button id="sampleBtn" class="btn ghost" type="button" title="Use sample data if your backend isn't ready">Use sample data</button>
+            </div>
+            <div id="status" class="loader" style="display:none">
+              <div class="spinner"></div>
+              <div>Analyzing… hang tight</div>
+            </div>
+            <div id="err" class="hint error" role="alert" style="display:none"></div>
+            <div class="hint" style="margin-top:8px">
+              Tip: Center your plate and use good lighting. Large photos auto‑compress.
+            </div>
+          </form>
+        </section>
+
+        <section id="results" class="card results" aria-live="polite" aria-atomic="true">
+          <div class="result-head">
+            <div class="sum">
+              <span class="chip" id="calTotal">Calories: —</span>
+              <span class="chip" id="protTotal">Protein: —</span>
+              <span class="chip" id="carbTotal">Carbs: —</span>
+              <span class="chip" id="fatTotal">Fat: —</span>
+            </div>
+            <button id="analyzeAgain" class="btn secondary" type="button">Analyze another</button>
+          </div>
+
+          <div class="ring-wrap">
+            <div id="donut" class="donut" aria-label="Macronutrient distribution donut"></div>
+            <div class="legend">
+              <div class="item"><span class="swatch prot"></span> Protein</div>
+              <div class="item"><span class="swatch carb"></span> Carbs</div>
+              <div class="item"><span class="swatch fat"></span> Fat</div>
+              <div class="item"><span class="swatch cal"></span> Calories</div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div id="gate" class="gated">
+            <p>Want the detailed food-by-food breakdown?</p>
+            <button id="watchAd" class="btn" type="button">Watch ad to unlock</button>
+            <div class="hint" style="margin-top:6px">We’ll show a short ad to keep Leafee free 💚</div>
+          </div>
+
+          <div id="foodsWrap" style="display:none">
+            <h3 style="margin:10px 0 8px">Food breakdown</h3>
+            <div id="foods" class="foods"></div>
+          </div>
+
+          <div class="hint" style="margin-top:10px">
+            Estimates only. Always consider dietary needs and allergies.
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- Reviews -->
+    <section id="reviews" class="section">
+      <div class="container">
+        <h2 class="section-title">What users say</h2>
+        <p class="section-sub">A little love from early testers.</p>
+        <div class="reviews">
+          <div class="review">
+            <div class="stars">★★★★★</div>
+            “Fast and accurate. I finally understand my salads. 😅”
+            <div class="who">— Alex, meal prep fan</div>
+          </div>
+          <div class="review">
+            <div class="stars">★★★★★</div>
+            “The ad unlock is fair. Totals right away, details when I need them.”
+            <div class="who">— Priya, busy student</div>
+          </div>
+          <div class="review">
+            <div class="stars">★★★★☆</div>
+            “Love the vibe. It’s cute and works on flaky café Wi‑Fi.”
+            <div class="who">— Marco, remote worker</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="section">
+      <div class="container">
+        <h2 class="section-title">FAQ</h2>
+        <div class="faq-list">
+          <details>
+            <summary>Is Leafee free?</summary>
+            <div class="hint" style="margin-top:6px">Yes! Totals are free. Watch a short ad to unlock the detailed itemized breakdown.</div>
+          </details>
+          <details>
+            <summary>Do you store my photos?</summary>
+            <div class="hint" style="margin-top:6px">Images are sent to the analyzer endpoint for processing. You can host the webhook to keep data in your control.</div>
+          </details>
+          <details>
+            <summary>What file types do you support?</summary>
+            <div class="hint" style="margin-top:6px">JPG and PNG. On mobile you can capture directly with your camera.</div>
+          </details>
+          <details>
+            <summary>How accurate are the macros?</summary>
+            <div class="hint" style="margin-top:6px">They’re estimates. Lighting, plating, and portion size affect results—use as guidance, not medical advice.</div>
+          </details>
+        </div>
+
+        <div class="bottom-cta">
+          <h3 style="margin:0 0 6px">Ready to eat smarter?</h3>
+          <p class="hint" style="margin:0 0 12px">Analyze your next meal with Leafee.</p>
+          <a href="#try" class="btn">Analyze a meal</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <section class="section" style="padding-top:0">
+      <div class="container">
+        <footer>
+          <div class="foot-grid">
+            <div>🌿 Leafee <span class="hint">• © <span id="year"></span></span></div>
+            <div class="foot-links">
+              <a href="#" aria-disabled="true">Privacy</a>
+              <a href="#" aria-disabled="true">Terms</a>
+              <a href="#" aria-disabled="true">Contact</a>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </section>
+  </main>
+
+  <!-- Sticky mobile CTA -->
+  <div id="stickyCta" class="sticky-cta" aria-hidden="true">
+    <div class="inner">
+      <div class="leaf">🌿</div>
+      <button id="stickyTry" class="btn" style="min-width:auto">Try Leafee</button>
+    </div>
+  </div>
+
+  <!-- Ad overlay (simulated) -->
+  <div id="adBackdrop" class="ad-backdrop" role="dialog" aria-modal="true" aria-label="Sponsored video">
+    <div class="ad">
+      <div class="ad-banner">Sponsored • Leaf-friendly goodness 🌱</div>
+      <div class="timer" id="adTimer">Ad ends in 6s</div>
+      <div class="ad-actions">
+        <button id="closeAd" class="btn secondary" type="button" disabled>Close</button>
+        <a class="btn ghost" href="#" onclick="return false">Learn more</a>
+      </div>
+      <div class="hint" style="margin-top:8px">Thanks for supporting a free, healthy web!</div>
+    </div>
+  </div>
+
+  <script>
+    const WEBHOOK_URL = 'http://localhost:5678/webhook-test/meal-ai';
+
+    // Nav mobile toggle
+    const menuToggle = document.getElementById('menuToggle');
+    const mobileMenu = document.getElementById('mobileMenu');
+    menuToggle?.addEventListener('click', ()=>{
+      mobileMenu.classList.toggle('open');
+    });
+    mobileMenu?.querySelectorAll('a').forEach(a=>{
+      a.addEventListener('click', ()=> mobileMenu.classList.remove('open'));
+    });
+
+    // Smooth scroll fallback for old browsers
+    document.querySelectorAll('a[href^="#"]').forEach(a=>{
+      a.addEventListener('click', (e)=>{
+        const id = a.getAttribute('href').slice(1);
+        const el = document.getElementById(id);
+        if(el){
+          e.preventDefault();
+          el.scrollIntoView({behavior:'smooth', block:'start'});
+        }
+      });
+    });
+
+    // Year in footer
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Sticky CTA show/hide based on try section visibility
+    const sticky = document.getElementById('stickyCta');
+    const trySection = document.getElementById('try');
+    const stickyTry = document.getElementById('stickyTry');
+    stickyTry.addEventListener('click', ()=>{
+      trySection.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+    const io = new IntersectionObserver((entries)=>{
+      entries.forEach(entry=>{
+        if(entry.isIntersecting){
+          sticky.style.display = 'none';
+          sticky.setAttribute('aria-hidden', 'true');
+        } else {
+          sticky.style.display = 'flex';
+          sticky.setAttribute('aria-hidden', 'false');
+        }
+      });
+    }, {threshold: 0.2});
+    io.observe(trySection);
+
+    // Elements for analyzer
+    const drop = document.getElementById('drop');
+    const fileInput = document.getElementById('file');
+    const preview = document.getElementById('preview');
+    const previewImg = document.getElementById('previewImg');
+    const submitBtn = document.getElementById('submitBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const sampleBtn = document.getElementById('sampleBtn');
+    const statusEl = document.getElementById('status');
+    const errEl = document.getElementById('err');
+
+    const results = document.getElementById('results');
+    const calTotal = document.getElementById('calTotal');
+    const protTotal = document.getElementById('protTotal');
+    const carbTotal = document.getElementById('carbTotal');
+    const fatTotal = document.getElementById('fatTotal');
+    const donut = document.getElementById('donut');
+    const foodsWrap = document.getElementById('foodsWrap');
+    const foods = document.getElementById('foods');
+    const gate = document.getElementById('gate');
+    const analyzeAgain = document.getElementById('analyzeAgain');
+
+    const adBackdrop = document.getElementById('adBackdrop');
+    const watchAdBtn = document.getElementById('watchAd');
+    const closeAdBtn = document.getElementById('closeAd');
+    const adTimer = document.getElementById('adTimer');
+
+    let currentData = null;
+    let adUnlocked = false;
+
+    // Helpers
+    const fmt = (n, d=1) => (typeof n === 'number') ? (Number.isInteger(n) ? n : n.toFixed(d)) : '—';
+
+    function showError(msg){
+      errEl.textContent = msg || 'Something went wrong. Please try again.';
+      errEl.style.display = 'block';
+    }
+    function clearError(){
+      errEl.textContent = '';
+      errEl.style.display = 'none';
+    }
+    function setLoading(loading){
+      statusEl.style.display = loading ? 'flex' : 'none';
+      submitBtn.disabled = loading || !fileInput.files?.length;
+    }
+
+    // Image preview and handling
+    drop.addEventListener('click', () => fileInput.click());
+    drop.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter' || e.key === ' '){
+        e.preventDefault();
+        fileInput.click();
+      }
+    });
+
+    ;['dragenter','dragover'].forEach(evt => {
+      drop.addEventListener(evt, e => {
+        e.preventDefault(); e.stopPropagation();
+        drop.classList.add('dragover');
+      });
+    });
+    ;['dragleave','drop'].forEach(evt => {
+      drop.addEventListener(evt, e => {
+        e.preventDefault(); e.stopPropagation();
+        drop.classList.remove('dragover');
+      });
+    });
+    drop.addEventListener('drop', (e)=>{
+      const f = e.dataTransfer.files?.[0];
+      if(f && f.type.startsWith('image/')){
+        handleFile(f);
+      }
+    });
+    fileInput.addEventListener('change', (e)=>{
+      const f = e.target.files?.[0];
+      if(f) handleFile(f);
+    });
+
+    function handleFile(file){
+      clearError();
+      const url = URL.createObjectURL(file);
+      previewImg.src = url;
+      preview.style.display = 'block';
+      submitBtn.disabled = false;
+      resetBtn.style.display = 'inline-flex';
+      // Scroll to analyzer if not in view
+      setTimeout(()=> document.getElementById('try').scrollIntoView({behavior:'smooth'}), 20);
+    }
+
+    resetBtn.addEventListener('click', resetAll);
+    analyzeAgain.addEventListener('click', resetAll);
+
+    function resetAll(){
+      fileInput.value = '';
+      previewImg.src = '';
+      preview.style.display = 'none';
+      submitBtn.disabled = true;
+      results.style.display = 'none';
+      foodsWrap.style.display = 'none';
+      gate.style.display = 'block';
+      adUnlocked = false;
+      clearError();
+      currentData = null;
+    }
+
+    // Compression for large images
+    async function compressImage(file, maxSize=1400, quality=0.85){
+      if(file.size <= 2.5 * 1024 * 1024) return file; // small: skip
+      const img = await loadImage(file);
+      const {canvas, ctx} = createCanvasCover(img, maxSize);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', quality));
+      if(!blob) return file;
+      return new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', {type: 'image/jpeg'});
+    }
+    function loadImage(file){
+      return new Promise((resolve, reject)=>{
+        const img = new Image();
+        img.onload = ()=> resolve(img);
+        img.onerror = reject;
+        img.src = URL.createObjectURL(file);
+      });
+    }
+    function createCanvasCover(img, max){
+      const ratio = Math.min(max / img.width, max / img.height, 1);
+      const w = Math.round(img.width * ratio);
+      const h = Math.round(img.height * ratio);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingQuality = 'high';
+      return {canvas, ctx};
+    }
+
+    // Analyze submit
+    document.getElementById('analyzeForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      clearError();
+      const file = fileInput.files?.[0];
+      if(!file){ showError('Please select an image first.'); return; }
+
+      setLoading(true);
+      try{
+        const toSend = await compressImage(file).catch(()=>file);
+        const fd = new FormData();
+        fd.append('image', toSend, toSend.name || 'meal.jpg'); // field name: image
+
+        const res = await fetch(WEBHOOK_URL, {
+          method:'POST',
+          body: fd,
+          headers: { 'Accept': 'application/json' }
+        });
+
+        if(!res.ok){
+          const text = await res.text().catch(()=> '');
+          throw new Error(`Server ${res.status}: ${text || res.statusText}`);
+        }
+
+        const data = await res.json();
+        const normalized = normalizeResponse(data);
+        currentData = normalized;
+        renderResults(normalized);
+      } catch(err){
+        console.error(err);
+        const hint = (String(err).includes('TypeError') || String(err).includes('Failed to fetch'))
+          ? ' (Check CORS and that the webhook is running)'
+          : '';
+        showError('Unable to analyze image' + hint);
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    // Sample data button (dev convenience)
+    sampleBtn.addEventListener('click', ()=>{
+      clearError();
+      const sample = [
+        {
+          "output": {
+            "status": "success",
+            "food": [
+              {"name":"Grilled Chicken Breast","quantity":"150g","calories":248,"protein":46,"carbs":0,"fat":5.3},
+              {"name":"Cherry Tomatoes","quantity":"100g","calories":18,"protein":0.9,"carbs":3.9,"fat":0.2},
+              {"name":"Chopped Carrots","quantity":"100g","calories":41,"protein":0.9,"carbs":10,"fat":0.2},
+              {"name":"Green Beans","quantity":"100g","calories":31,"protein":1.8,"carbs":7,"fat":0.1},
+              {"name":"Kiwi","quantity":"80g","calories":42,"protein":0.8,"carbs":10.1,"fat":0.4},
+              {"name":"Apple Slices","quantity":"100g","calories":52,"protein":0.3,"carbs":14,"fat":0.2},
+              {"name":"Mixed Berries (Blackberry, Blueberry)","quantity":"50g","calories":29,"protein":0.4,"carbs":7,"fat":0.3},
+              {"name":"Lemon Wedge","quantity":"20g","calories":6,"protein":0.1,"carbs":2,"fat":0}
+            ],
+            "total": {"calories":467,"protein":51.2,"carbs":54,"fat":6.7}
+          }
+        }
+      ];
+      const normalized = normalizeResponse(sample);
+      currentData = normalized;
+      renderResults(normalized);
+      document.getElementById('results').scrollIntoView({behavior:'smooth'});
+    });
+
+    // Response normalizer
+    function normalizeResponse(data){
+      let payload = data;
+      if(Array.isArray(data)) payload = data[0];
+      if(payload && payload.output) payload = payload.output;
+
+      const foods = Array.isArray(payload.food) ? payload.food : [];
+      let total = payload.total || {};
+      if(!('calories' in total) && foods.length){
+        total = foods.reduce((acc,f)=>{
+          acc.calories += f.calories || 0;
+          acc.protein += f.protein || 0;
+          acc.carbs += f.carbs || 0;
+          acc.fat += f.fat || 0;
+          return acc;
+        }, {calories:0,protein:0,carbs:0,fat:0});
+      }
+      return { foods, total };
+    }
+
+    function renderResults({foods: foodList, total}){
+      // Totals
+      calTotal.textContent  = `Calories: ${fmt(total.calories, 0)} kcal`;
+      protTotal.textContent = `Protein: ${fmt(total.protein)} g`;
+      carbTotal.textContent = `Carbs: ${fmt(total.carbs)} g`;
+      fatTotal.textContent  = `Fat: ${fmt(total.fat)} g`;
+
+      // Donut chart (protein, carbs, fat)
+      const p = Math.max(0, Number(total.protein) || 0);
+      const c = Math.max(0, Number(total.carbs) || 0);
+      const f = Math.max(0, Number(total.fat) || 0);
+      const sum = Math.max(1e-6, p + c + f);
+      const pPct = p / sum * 100;
+      const cPct = c / sum * 100;
+      const fPct = 100 - pPct - cPct;
+      const donutBg = `
+        conic-gradient(
+          #5db0ff ${pPct.toFixed(2)}%,
+          #fdaf5e 0 ${ (pPct + cPct).toFixed(2)}%,
+          #ff6a89 0 100%
+        )
+      `;
+      donut.style.background = donutBg;
+
+      // Food items (hidden until ad unlock)
+      foods.innerHTML = '';
+      for(const item of foodList){
+        const div = document.createElement('div');
+        div.className = 'food';
+        div.innerHTML = `
+          <h4>${escapeHTML(item.name || 'Food item')}</h4>
+          <div class="meta">${escapeHTML(item.quantity || '')}</div>
+          <div class="macros">
+            <span class="chip" style="background:rgba(93,176,255,.12);border-color:rgba(93,176,255,.4)">P: ${fmt(item.protein)}g</span>
+            <span class="chip" style="background:rgba(253,175,94,.12);border-color:rgba(253,175,94,.4)">C: ${fmt(item.carbs)}g</span>
+            <span class="chip" style="background:rgba(255,106,137,.12);border-color:rgba(255,106,137,.4)">F: ${fmt(item.fat)}g</span>
+            <span class="chip" style="background:rgba(123,211,137,.12);border-color:rgba(123,211,137,.4)">${fmt(item.calories,0)} kcal</span>
+          </div>
+        `;
+        foods.appendChild(div);
+      }
+
+      // Gate handling
+      foodsWrap.style.display = adUnlocked ? 'block' : 'none';
+      gate.style.display = adUnlocked ? 'none' : 'block';
+
+      results.style.display = 'block';
+      setTimeout(()=> results.scrollIntoView({behavior:'smooth', block:'start'}), 50);
+    }
+
+    function escapeHTML(s){
+      return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+    }
+
+    // Ad flow (simulated)
+    const watchAdBtn = document.getElementById('watchAd');
+    watchAdBtn.addEventListener('click', ()=>{
+      adBackdrop.style.display = 'flex';
+      let secs = 6;
+      closeAdBtn.disabled = true;
+      adTimer.textContent = `Ad ends in ${secs}s`;
+      const iv = setInterval(()=>{
+        secs--;
+        if(secs <= 0){
+          clearInterval(iv);
+          adTimer.textContent = 'Ad completed 🎉';
+          closeAdBtn.disabled = false;
+        } else {
+          adTimer.textContent = `Ad ends in ${secs}s`;
+        }
+      }, 1000);
+    });
+
+    closeAdBtn.addEventListener('click', ()=>{
+      adBackdrop.style.display = 'none';
+      adUnlocked = true;
+      gate.style.display = 'none';
+      foodsWrap.style.display = currentData?.foods?.length ? 'block' : 'none';
+    });
+
+    // Accessibility: close ad with Esc
+    document.addEventListener('keydown', (e)=>{
+      if(e.key === 'Escape' && adBackdrop.style.display === 'flex'){
+        if(!closeAdBtn.disabled) closeAdBtn.click();
+      }
+    });
+  </script>
+</body>
+</html>
